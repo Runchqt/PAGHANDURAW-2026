@@ -111,6 +111,11 @@
     border-color:rgba(239,233,223,0.45);
   }
   .tbtn:active{ transform:scale(0.94); }
+  .tbtn.active {
+    background: rgba(217,97,31,0.2);
+    border-color: var(--rust);
+    color: var(--amber);
+  }
   .tbtn svg{ width:17px; height:17px; }
   .tbtn.wide{
     width:auto;
@@ -318,11 +323,14 @@
     max-width: none !important;
     pointer-events: none;
     -webkit-user-drag: none;
+    /* Force high-quality baseline rendering */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: high-quality;
   }
   .img-single {
     left: 0;
     width: 100%;
-    object-fit: cover; /* Changed to cover for flawless edge-to-edge rendering */
+    object-fit: cover; 
   }
   .img-spread-left {
     left: 0;
@@ -334,6 +342,25 @@
     width: 200%;
     object-fit: cover;
   }
+
+  /* ---------- Magnifying Glass ---------- */
+  #magnifier {
+    position: fixed;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    border: 3px solid var(--rust);
+    background-color: var(--paper);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 10px rgba(0,0,0,0.2);
+    pointer-events: none; /* Allows you to click and flip through the glass! */
+    z-index: 9999;
+    display: none;
+    background-repeat: no-repeat;
+    image-rendering: high-quality;
+  }
+  #magnifier.active {
+    display: block;
+  }
 </style>
 </head>
 <body>
@@ -343,6 +370,9 @@
   <div class="loader-bar"><i></i></div>
 </div>
 
+<!-- Magnifier Tool -->
+<div id="magnifier"></div>
+
 <div class="app">
   <header>
     <div class="brand">
@@ -350,6 +380,12 @@
       <span class="title">Accomplishment Report<small>Engineering Students Organization · MSU-GSC</small></span>
     </div>
     <div class="toolbar">
+      <!-- New Zoom Button -->
+      <button class="tbtn wide" id="magBtn" title="Magnifying Glass" aria-label="Toggle Magnifier">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+        <span class="label">Zoom</span>
+      </button>
+
       <button class="tbtn wide" id="fullscreenBtn" title="Fullscreen" aria-label="Toggle fullscreen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
         <span class="label">Fullscreen</span>
@@ -462,7 +498,7 @@
     maxShadowOpacity: 0.5,
     showCover: true, 
     mobileScrollSupport: false,
-    usePortrait: false, // <-- CHANGED TO FALSE: Locks into the 2-page landscape spread permanently!
+    usePortrait: false, // Locks into the 2-page landscape spread permanently!
     autoSize: false,
     drawShadow: true,
     flippingTime: 700,
@@ -525,6 +561,80 @@
       const s = computeSize();
       pageFlip.updateSettings({ width: s.width, height: s.height });
     }, 150);
+  });
+
+
+  /* =========================================
+     MAGNIFYING GLASS LOGIC
+     ========================================= */
+  const magBtn = document.getElementById('magBtn');
+  const magnifier = document.getElementById('magnifier');
+  let isMagActive = false;
+  
+  const MAG_SIZE = 220; 
+  const MAG_RADIUS = MAG_SIZE / 2;
+  const ZOOM_LEVEL = 2.5; // Adjust this number to zoom in closer or further
+
+  magBtn.addEventListener('click', () => {
+    isMagActive = !isMagActive;
+    magBtn.classList.toggle('active', isMagActive);
+    if (!isMagActive) magnifier.classList.remove('active');
+  });
+
+  function handleMagnifierMove(e) {
+    if (!isMagActive) return;
+
+    // Support both mouse and touch tracking
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    // If using touch, pop the glass slightly above the finger so it isn't hidden
+    const touchOffset = e.touches ? (MAG_RADIUS + 40) : MAG_RADIUS;
+
+    // Dig through the overlapping layers to find the actual page underneath
+    const elements = document.elementsFromPoint(clientX, clientY);
+    const wrapper = elements.find(el => el.classList.contains('page-wrapper'));
+
+    if (wrapper) {
+      magnifier.classList.add('active');
+
+      // Move magnifier to follow the cursor/finger
+      magnifier.style.left = (clientX - MAG_RADIUS) + 'px';
+      magnifier.style.top = (clientY - touchOffset) + 'px';
+
+      const imgEl = wrapper.querySelector('img');
+      if (!imgEl) return;
+
+      const rect = wrapper.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      magnifier.style.backgroundImage = `url('${imgEl.src}')`;
+
+      // Smart calculation to perfectly align the left/right sliced image inside the glass
+      if (imgEl.classList.contains('img-single')) {
+        magnifier.style.backgroundSize = `${rect.width * ZOOM_LEVEL}px ${rect.height * ZOOM_LEVEL}px`;
+        magnifier.style.backgroundPosition = `-${(x * ZOOM_LEVEL) - MAG_RADIUS}px -${(y * ZOOM_LEVEL) - MAG_RADIUS}px`;
+      } 
+      else if (imgEl.classList.contains('img-spread-left')) {
+        magnifier.style.backgroundSize = `${rect.width * 2 * ZOOM_LEVEL}px ${rect.height * ZOOM_LEVEL}px`;
+        magnifier.style.backgroundPosition = `-${(x * ZOOM_LEVEL) - MAG_RADIUS}px -${(y * ZOOM_LEVEL) - MAG_RADIUS}px`;
+      } 
+      else if (imgEl.classList.contains('img-spread-right')) {
+        magnifier.style.backgroundSize = `${rect.width * 2 * ZOOM_LEVEL}px ${rect.height * ZOOM_LEVEL}px`;
+        magnifier.style.backgroundPosition = `-${((x + rect.width) * ZOOM_LEVEL) - MAG_RADIUS}px -${(y * ZOOM_LEVEL) - MAG_RADIUS}px`;
+      }
+    } else {
+      magnifier.classList.remove('active');
+    }
+  }
+
+  document.addEventListener('mousemove', handleMagnifierMove);
+  document.addEventListener('touchmove', handleMagnifierMove, {passive: true});
+  
+  // Hide the glass when the finger leaves the screen
+  document.addEventListener('touchend', () => {
+    if(isMagActive) magnifier.classList.remove('active');
   });
 
   setTimeout(dismissLoader, 6000);
