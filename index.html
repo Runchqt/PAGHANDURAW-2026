@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAGHANDURAW 2026 — Accomplishment Report</title>
 
+<link rel="icon" type="image/png" href="logo.png">
+  
 <!-- Preloads cover immediately for fast loading -->
 <link rel="preload" as="image" href="page-01.jpg">
 
@@ -567,38 +569,47 @@
   /* =========================================
      MAGNIFYING GLASS LOGIC
      ========================================= */
-  const magBtn = document.getElementById('magBtn');
+const magBtn = document.getElementById('magBtn');
   const magnifier = document.getElementById('magnifier');
+  const zoomHint = document.getElementById('zoomHint');
   let isMagActive = false;
+  let hintTimeout;
   
   const MAG_SIZE = 220; 
   const MAG_RADIUS = MAG_SIZE / 2;
-  const ZOOM_LEVEL = 2.5; // Adjust this number to zoom in closer or further
+  const ZOOM_LEVEL = 2.5;
 
   magBtn.addEventListener('click', () => {
     isMagActive = !isMagActive;
     magBtn.classList.toggle('active', isMagActive);
-    if (!isMagActive) magnifier.classList.remove('active');
+
+    // Clear any previous timer
+    clearTimeout(hintTimeout);
+
+    if (isMagActive) {
+      // Show hint ONLY when turned on
+      zoomHint.textContent = "Zoom ON: Hover or drag over any page";
+      zoomHint.classList.add('show');
+    } else {
+      // Hide hint and magnifier when turned off
+      zoomHint.classList.remove('show');
+      magnifier.classList.remove('active');
+    }
   });
 
   function handleMagnifierMove(e) {
     if (!isMagActive) return;
 
-    // Support both mouse and touch tracking
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-    // If using touch, pop the glass slightly above the finger so it isn't hidden
     const touchOffset = e.touches ? (MAG_RADIUS + 40) : MAG_RADIUS;
 
-    // Dig through the overlapping layers to find the actual page underneath
     const elements = document.elementsFromPoint(clientX, clientY);
     const wrapper = elements.find(el => el.classList.contains('page-wrapper'));
 
     if (wrapper) {
       magnifier.classList.add('active');
 
-      // Move magnifier to follow the cursor/finger
       magnifier.style.left = (clientX - MAG_RADIUS) + 'px';
       magnifier.style.top = (clientY - touchOffset) + 'px';
 
@@ -611,7 +622,6 @@
 
       magnifier.style.backgroundImage = `url('${imgEl.src}')`;
 
-      // Smart calculation to perfectly align the left/right sliced image inside the glass
       if (imgEl.classList.contains('img-single')) {
         magnifier.style.backgroundSize = `${rect.width * ZOOM_LEVEL}px ${rect.height * ZOOM_LEVEL}px`;
         magnifier.style.backgroundPosition = `-${(x * ZOOM_LEVEL) - MAG_RADIUS}px -${(y * ZOOM_LEVEL) - MAG_RADIUS}px`;
@@ -632,13 +642,9 @@
   document.addEventListener('mousemove', handleMagnifierMove);
   document.addEventListener('touchmove', handleMagnifierMove, {passive: true});
   
-  // Hide the glass when the finger leaves the screen
   document.addEventListener('touchend', () => {
     if(isMagActive) magnifier.classList.remove('active');
   });
-
-  setTimeout(dismissLoader, 6000);
-})();
 </script>
 </body>
 </html>
