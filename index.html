@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAGHANDURAW 2026 — Accomplishment Report</title>
+
+<!-- Preloads cover immediately for fast loading -->
+<link rel="preload" as="image" href="page-01.jpg">
+
 <link rel="stylesheet" href="pageflip.css">
 <style>
   :root{
@@ -13,7 +17,6 @@
     --rust-deep:#b84c14;
     --amber:#f2a03d;
     --steel:#2c3e46;
-    --line: rgba(28,26,23,0.14);
   }
 
   *{box-sizing:border-box;}
@@ -235,7 +238,7 @@
     align-items:center;
     justify-content:center;
     gap:18px;
-    transition:opacity 0.5s ease;
+    transition:opacity 0.4s ease;
   }
   .loader.hide{ opacity:0; pointer-events:none; }
   .loader-mark{
@@ -300,28 +303,36 @@
     .hint{ font-size:10.5px; padding:7px 12px; bottom:10px;}
   }
 
-  /* ---------- Anti-Squish Background Classes ---------- */
-  .single-page {
+  /* ---------- Perfect Image Cropping Classes ---------- */
+  .page-wrapper {
+    position: relative;
     background-color: #ffffff;
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-size: contain; 
     width: 100%;
     height: 100%;
+    overflow: hidden;
   }
-
-  .split-page {
-    background-color: #ffffff;
-    background-repeat: no-repeat;
-    background-size: 200% auto; 
-    width: 100%;
+  .page-wrapper img {
+    position: absolute;
+    top: 0;
     height: 100%;
+    max-width: none !important; /* CRITICAL FIX: Stops any squishing */
+    pointer-events: none;
+    -webkit-user-drag: none;
   }
-  .split-page.left-half {
-    background-position: left center;
+  .img-single {
+    left: 0;
+    width: 100%;
+    object-fit: contain;
   }
-  .split-page.right-half {
-    background-position: right center;
+  .img-spread-left {
+    left: 0;
+    width: 200%;
+    object-fit: contain;
+  }
+  .img-spread-right {
+    left: -100%;
+    width: 200%;
+    object-fit: contain;
   }
 </style>
 </head>
@@ -343,7 +354,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
         <span class="label">Fullscreen</span>
       </button>
-
     </div>
   </header>
 
@@ -386,30 +396,33 @@
   const nextBtn = document.getElementById('nextBtn');
   const fullscreenBtn = document.getElementById('fullscreenBtn');
 
-  // Build the DOM nodes and PROTECT the images with a wrapper
+  // Build the DOM nodes and PROTECT the real <img> tags with a wrapper
   imageUrls.forEach((url, index) => {
     if (index === 0 || index === TOTAL_IMAGE_FILES - 1) {
       // FRONT COVER & BACK COVER
-      const wrapper = document.createElement('div'); // Protective outer layer
-      const singlePage = document.createElement('div'); // Image layer
-      singlePage.className = 'single-page';
-      singlePage.style.backgroundImage = `url('${url}')`;
-      wrapper.appendChild(singlePage);
+      const wrapper = document.createElement('div'); 
+      wrapper.className = 'page-wrapper';
+      const img = document.createElement('img'); 
+      img.src = url;
+      img.className = 'img-single';
+      wrapper.appendChild(img);
       container.appendChild(wrapper);
     } else {
       // MIDDLE SPREADS - Cut cleanly without squishing
       const wrapperLeft = document.createElement('div');
-      const leftPage = document.createElement('div');
-      leftPage.className = 'split-page left-half';
-      leftPage.style.backgroundImage = `url('${url}')`;
-      wrapperLeft.appendChild(leftPage);
+      wrapperLeft.className = 'page-wrapper';
+      const imgLeft = document.createElement('img');
+      imgLeft.src = url;
+      imgLeft.className = 'img-spread-left';
+      wrapperLeft.appendChild(imgLeft);
       container.appendChild(wrapperLeft);
 
       const wrapperRight = document.createElement('div');
-      const rightPage = document.createElement('div');
-      rightPage.className = 'split-page right-half';
-      rightPage.style.backgroundImage = `url('${url}')`;
-      wrapperRight.appendChild(rightPage);
+      wrapperRight.className = 'page-wrapper';
+      const imgRight = document.createElement('img');
+      imgRight.src = url;
+      imgRight.className = 'img-spread-right';
+      wrapperRight.appendChild(imgRight);
       container.appendChild(wrapperRight);
     }
   });
@@ -447,9 +460,9 @@
     minHeight: 300,
     maxHeight: 2000,
     maxShadowOpacity: 0.5,
-    showCover: true,
+    showCover: true, 
     mobileScrollSupport: false,
-    usePortrait: true,
+    usePortrait: true, // Forces single-page centered view on smaller screens (Fixes blank left-page)
     autoSize: false,
     drawShadow: true,
     flippingTime: 700,
@@ -458,13 +471,23 @@
 
   pageFlip.loadFromHTML(document.querySelectorAll('#book-container > div'));
 
+  // FAST LOAD TRIGGER: Dismiss loader the moment the cover image finishes downloading
+  const coverImg = new Image();
+  coverImg.src = 'page-01.jpg';
+  const dismissLoader = () => {
+    loader.classList.add('hide');
+    hint.classList.add('fade');
+  };
+
+  if (coverImg.complete) {
+    dismissLoader();
+  } else {
+    coverImg.onload = dismissLoader;
+    coverImg.onerror = dismissLoader;
+  }
+
   pageFlip.on('flip', (e) => {
     updateIndicator(e.data + 1);
-  });
-
-  pageFlip.on('init', () => {
-    setTimeout(()=>{ loader.classList.add('hide'); }, 350);
-    setTimeout(()=>{ hint.classList.add('fade'); }, 100);
   });
 
   function updateIndicator(current){
@@ -504,7 +527,7 @@
     }, 150);
   });
 
-  setTimeout(()=> loader.classList.add('hide'), 6000);
+  setTimeout(dismissLoader, 6000);
 })();
 </script>
 </body>
