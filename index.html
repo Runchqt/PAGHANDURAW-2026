@@ -645,6 +645,9 @@
   document.addEventListener('touchend', () => {
     if(isMagActive) magnifier.classList.remove('active');
   });
+
+  setTimeout(dismissLoader, 6000);
+  
 })();
 </script>
 </body>
