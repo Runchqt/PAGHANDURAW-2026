@@ -374,7 +374,7 @@
 (function(){
   const TOTAL_IMAGE_FILES = 21;
   const pad = n => String(n).padStart(2,'0');
-  const imageUrls = Array.from({length: TOTAL_IMAGE_FILES}, (_,i)=>`pages/page-${pad(i+1)}.jpg`);
+  const imageUrls = Array.from({length: TOTAL_IMAGE_FILES}, (_,i)=>`page-${pad(i+1)}.jpg`);
 
   const container = document.getElementById('book-container');
   const stage = document.getElementById('stage');
