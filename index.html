@@ -7,7 +7,6 @@
 
 <link rel="icon" type="image/png" href="logo.png">
   
-<!-- Preloads cover immediately for fast loading -->
 <link rel="preload" as="image" href="page-01.jpg">
 
 <link rel="stylesheet" href="pageflip.css">
@@ -297,6 +296,7 @@
     white-space:nowrap;
   }
   .hint.fade{ opacity:0; }
+  #zoomHint.show{ opacity:1; }
 
   @media (max-width:640px){
     header{ padding:10px 12px; }
@@ -325,7 +325,7 @@
     max-width: none !important;
     pointer-events: none;
     -webkit-user-drag: none;
-    /* Force high-quality downscaling: */
+    
     image-rendering: -webkit-optimize-contrast;
     image-rendering: high-quality;
   }
@@ -354,7 +354,7 @@
     border: 3px solid var(--rust);
     background-color: var(--paper);
     box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 10px rgba(0,0,0,0.2);
-    pointer-events: none; /* Allows you to click and flip through the glass! */
+    pointer-events: none;
     z-index: 9999;
     display: none;
     background-repeat: no-repeat;
@@ -374,7 +374,8 @@
 
 <!-- Magnifier Tool -->
 <div id="magnifier"></div>
-
+<div id="zoomHint" class="hint" style="opacity:0; transition:opacity 0.3s ease;"></div>
+  
 <div class="app">
   <header>
     <div class="brand">
@@ -382,7 +383,7 @@
       <span class="title">Accomplishment Report 2025 - 2026<small>Engineering Students Organization · MSU-GenSan</small></span>
     </div>
     <div class="toolbar">
-      <!-- New Zoom Button -->
+      
       <button class="tbtn wide" id="magBtn" title="Magnifying Glass" aria-label="Toggle Magnifier">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
         <span class="label">Zoom</span>
@@ -500,7 +501,7 @@
     maxShadowOpacity: 0.5,
     showCover: true, 
     mobileScrollSupport: false,
-    usePortrait: false, // Locks into the 2-page landscape spread permanently!
+    usePortrait: false, 
     autoSize: false,
     drawShadow: true,
     flippingTime: 700,
@@ -509,7 +510,7 @@
 
   pageFlip.loadFromHTML(document.querySelectorAll('#book-container > div'));
 
-  // FAST LOAD TRIGGER: Dismiss loader the moment the cover image finishes downloading
+  
   const coverImg = new Image();
   coverImg.src = 'page-01.jpg';
   const dismissLoader = () => {
@@ -566,9 +567,7 @@
   });
 
 
-/* =========================================
-     MAGNIFYING GLASS LOGIC (On-Click Tip Only)
-     ========================================= */
+
   const magBtn = document.getElementById('magBtn');
   const magnifier = document.getElementById('magnifier');
   const zoomHint = document.getElementById('zoomHint');
@@ -583,16 +582,16 @@
     isMagActive = !isMagActive;
     magBtn.classList.toggle('active', isMagActive);
 
-    // Clear any previous timer
     clearTimeout(hintTimeout);
-
     if (isMagActive) {
-      // Show hint ONLY when turned on
-      zoomHint.textContent = "Zoom ON: Hover or drag over any page";
-      zoomHint.classList.add('show');
+ 
+      if (zoomHint) {
+        zoomHint.textContent = "Zoom ON: Hover or drag over any page";
+        zoomHint.classList.add('show');
+      }
     } else {
-      // Hide hint and magnifier when turned off
-      zoomHint.classList.remove('show');
+      
+      if (zoomHint) zoomHint.classList.remove('show');
       magnifier.classList.remove('active');
     }
   });
