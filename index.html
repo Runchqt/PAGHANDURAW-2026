@@ -145,18 +145,6 @@
     z-index:2;
   }
 
-  .page-img{
-    width:100%;
-    height:100%;
-    display:block;
-    -webkit-user-drag:none;
-    user-select:none;
-    background:#fff;
-  }
-  .stf__item{
-    background:#fff;
-  }
-
   .side-nav{
     position:absolute;
     top:0;
@@ -311,6 +299,30 @@
     .page-indicator{ font-size:11px; min-width:50px; }
     .hint{ font-size:10.5px; padding:7px 12px; bottom:10px;}
   }
+
+  /* ---------- Anti-Squish Background Classes ---------- */
+  .single-page {
+    background-color: #ffffff;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain; /* Locks ratio, prevents squishing */
+    width: 100%;
+    height: 100%;
+  }
+
+  .split-page {
+    background-color: #ffffff;
+    background-repeat: no-repeat;
+    background-size: 200% auto; /* Forces 2-page width, scales height naturally */
+    width: 100%;
+    height: 100%;
+  }
+  .split-page.left-half {
+    background-position: left center;
+  }
+  .split-page.right-half {
+    background-position: right center;
+  }
 </style>
 </head>
 <body>
@@ -351,8 +363,8 @@
 
   <footer>
     <div class="scrub-row">
-      <span class="page-indicator" id="pageIndicator">1 / 21</span>
-      <input type="range" id="scrubber" min="1" max="21" value="1" step="1" aria-label="Jump to page">
+      <span class="page-indicator" id="pageIndicator">1 / 40</span>
+      <input type="range" id="scrubber" min="1" max="40" value="1" step="1" aria-label="Jump to page">
     </div>
   </footer>
 </div>
@@ -360,9 +372,9 @@
 <script src="pageflip.js"></script>
 <script>
 (function(){
-  const TOTAL_PAGES = 21;
+  const TOTAL_IMAGE_FILES = 21;
   const pad = n => String(n).padStart(2,'0');
-  const pageUrls = Array.from({length:TOTAL_PAGES}, (_,i)=>`pages/page-${pad(i+1)}.jpg`);
+  const imageUrls = Array.from({length: TOTAL_IMAGE_FILES}, (_,i)=>`pages/page-${pad(i+1)}.jpg`);
 
   const container = document.getElementById('book-container');
   const stage = document.getElementById('stage');
@@ -373,23 +385,40 @@
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
   const fullscreenBtn = document.getElementById('fullscreenBtn');
-  const downloadBtn = document.getElementById('downloadBtn');
 
-  // A4 single-page ratio (width/height), matching page-01 / page-21 covers exactly
+  // Build the DOM nodes to slice the images correctly
+  imageUrls.forEach((url, index) => {
+    if (index === 0 || index === TOTAL_IMAGE_FILES - 1) {
+      // FRONT COVER & BACK COVER
+      const singlePage = document.createElement('div');
+      singlePage.className = 'single-page';
+      singlePage.style.backgroundImage = `url(${url})`;
+      container.appendChild(singlePage);
+    } else {
+      // MIDDLE SPREADS - Cut cleanly without squishing
+      const leftPage = document.createElement('div');
+      leftPage.className = 'split-page left-half';
+      leftPage.style.backgroundImage = `url(${url})`;
+      container.appendChild(leftPage);
+
+      const rightPage = document.createElement('div');
+      rightPage.className = 'split-page right-half';
+      rightPage.style.backgroundImage = `url(${url})`;
+      container.appendChild(rightPage);
+    }
+  });
+
+  const TOTAL_PAGES = container.children.length; 
   const SINGLE_RATIO = 1241 / 1755;
 
   function computeSize(){
     const w = stage.clientWidth;
     const h = stage.clientHeight - 24;
 
-    // The book's "page" unit in showCover mode is always a SINGLE page's
-    // dimensions. Spreads are just two of these placed side by side.
-    // So we size based on the single-page ratio, then make sure a full
-    // spread (2x this width) still fits the available width.
     let pageH = h;
     let pageW = pageH * SINGLE_RATIO;
-
     const maxSpreadW = w * 0.94;
+    
     if (pageW * 2 > maxSpreadW){
       pageW = maxSpreadW / 2;
       pageH = pageW / SINGLE_RATIO;
@@ -414,14 +443,14 @@
     maxShadowOpacity: 0.5,
     showCover: true,
     mobileScrollSupport: false,
-    usePortrait: false,
+    usePortrait: true, // Switched to TRUE: Forces single-page centered view on smaller screens!
     autoSize: false,
     drawShadow: true,
     flippingTime: 700,
     useMouseEvents: true
   });
 
-  pageFlip.loadFromImages(pageUrls);
+  pageFlip.loadFromHTML(document.querySelectorAll('#book-container > div'));
 
   pageFlip.on('flip', (e) => {
     updateIndicator(e.data + 1);
@@ -434,6 +463,7 @@
 
   function updateIndicator(current){
     pageIndicator.textContent = `${current} / ${TOTAL_PAGES}`;
+    scrubber.max = TOTAL_PAGES;
     scrubber.value = current;
   }
 
@@ -451,7 +481,6 @@
     if (e.key === 'ArrowLeft') pageFlip.flipPrev();
   });
 
-  // Fullscreen
   fullscreenBtn.addEventListener('click', ()=>{
     if (!document.fullscreenElement){
       document.documentElement.requestFullscreen().catch(()=>{});
@@ -460,7 +489,6 @@
     }
   });
 
-  // Resize handling
   let resizeTimer;
   window.addEventListener('resize', ()=>{
     clearTimeout(resizeTimer);
@@ -470,7 +498,6 @@
     }, 150);
   });
 
-  // Fallback: hide loader after 6s regardless
   setTimeout(()=> loader.classList.add('hide'), 6000);
 })();
 </script>
