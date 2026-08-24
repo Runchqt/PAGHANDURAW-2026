@@ -315,24 +315,24 @@
     position: absolute;
     top: 0;
     height: 100%;
-    max-width: none !important; /* CRITICAL FIX: Stops any squishing */
+    max-width: none !important;
     pointer-events: none;
     -webkit-user-drag: none;
   }
   .img-single {
     left: 0;
     width: 100%;
-    object-fit: contain;
+    object-fit: cover; /* Changed to cover for flawless edge-to-edge rendering */
   }
   .img-spread-left {
     left: 0;
     width: 200%;
-    object-fit: contain;
+    object-fit: cover;
   }
   .img-spread-right {
     left: -100%;
     width: 200%;
-    object-fit: contain;
+    object-fit: cover;
   }
 </style>
 </head>
@@ -462,7 +462,7 @@
     maxShadowOpacity: 0.5,
     showCover: true, 
     mobileScrollSupport: false,
-    usePortrait: true, // Forces single-page centered view on smaller screens (Fixes blank left-page)
+    usePortrait: false, // <-- CHANGED TO FALSE: Locks into the 2-page landscape spread permanently!
     autoSize: false,
     drawShadow: true,
     flippingTime: 700,
