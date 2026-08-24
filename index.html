@@ -305,7 +305,7 @@
     background-color: #ffffff;
     background-repeat: no-repeat;
     background-position: center center;
-    background-size: contain; /* Locks ratio, prevents squishing */
+    background-size: contain; 
     width: 100%;
     height: 100%;
   }
@@ -313,7 +313,7 @@
   .split-page {
     background-color: #ffffff;
     background-repeat: no-repeat;
-    background-size: 200% auto; /* Forces 2-page width, scales height naturally */
+    background-size: 200% auto; 
     width: 100%;
     height: 100%;
   }
@@ -386,25 +386,31 @@
   const nextBtn = document.getElementById('nextBtn');
   const fullscreenBtn = document.getElementById('fullscreenBtn');
 
-  // Build the DOM nodes to slice the images correctly
+  // Build the DOM nodes and PROTECT the images with a wrapper
   imageUrls.forEach((url, index) => {
     if (index === 0 || index === TOTAL_IMAGE_FILES - 1) {
       // FRONT COVER & BACK COVER
-      const singlePage = document.createElement('div');
+      const wrapper = document.createElement('div'); // Protective outer layer
+      const singlePage = document.createElement('div'); // Image layer
       singlePage.className = 'single-page';
-      singlePage.style.backgroundImage = `url(${url})`;
-      container.appendChild(singlePage);
+      singlePage.style.backgroundImage = `url('${url}')`;
+      wrapper.appendChild(singlePage);
+      container.appendChild(wrapper);
     } else {
       // MIDDLE SPREADS - Cut cleanly without squishing
+      const wrapperLeft = document.createElement('div');
       const leftPage = document.createElement('div');
       leftPage.className = 'split-page left-half';
-      leftPage.style.backgroundImage = `url(${url})`;
-      container.appendChild(leftPage);
+      leftPage.style.backgroundImage = `url('${url}')`;
+      wrapperLeft.appendChild(leftPage);
+      container.appendChild(wrapperLeft);
 
+      const wrapperRight = document.createElement('div');
       const rightPage = document.createElement('div');
       rightPage.className = 'split-page right-half';
-      rightPage.style.backgroundImage = `url(${url})`;
-      container.appendChild(rightPage);
+      rightPage.style.backgroundImage = `url('${url}')`;
+      wrapperRight.appendChild(rightPage);
+      container.appendChild(wrapperRight);
     }
   });
 
@@ -443,7 +449,7 @@
     maxShadowOpacity: 0.5,
     showCover: true,
     mobileScrollSupport: false,
-    usePortrait: true, // Switched to TRUE: Forces single-page centered view on smaller screens!
+    usePortrait: true,
     autoSize: false,
     drawShadow: true,
     flippingTime: 700,
