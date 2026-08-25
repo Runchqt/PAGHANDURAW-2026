@@ -822,17 +822,15 @@
   });
 
 
-  // Block ALL single-finger flip gestures while zoomed in
   function blockFlipWhileZoomed(e){
-    if (pinchScale > 1.02){
+    if (pinchScale > 1.05 && e.touches && e.touches.length === 1){
       e.stopPropagation();
       if (e.cancelable) e.preventDefault();
     }
   }
 
-  document.addEventListener('touchstart', blockFlipWhileZoomed, {capture:true, passive:false});
-  document.addEventListener('touchmove', blockFlipWhileZoomed, {capture:true, passive:false});
-  document.addEventListener('touchend', blockFlipWhileZoomed, {capture:true, passive:false});
+  container.addEventListener('touchstart', blockFlipWhileZoomed, {capture:true, passive:false});
+  container.addEventListener('touchmove', blockFlipWhileZoomed, {capture:true, passive:false});
   
   setTimeout(dismissLoader, 6000);
   
