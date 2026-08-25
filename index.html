@@ -296,6 +296,7 @@
     white-space:nowrap;
   }
   .hint.fade{ opacity:0; }
+  #zoomHint{ opacity:0; transition:opacity 0.3s ease; }
   #zoomHint.show{ opacity:1; }
   .toast{
     position:fixed;
@@ -408,7 +409,7 @@
 <div id="magnifier"></div>
   <div id="toast" class="toast"></div>
   <audio id="flipSound" preload="auto" src="page-flip.mp3"></audio>
-<div id="zoomHint" class="hint" style="opacity:0; transition:opacity 0.3s ease;"></div>
+<div id="zoomHint" class="hint"></div>
   
 <div class="app">
   <header>
