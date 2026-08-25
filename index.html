@@ -559,12 +559,22 @@
   }
 
   const flipSound = document.getElementById('flipSound');
-  pageFlip.on('flip', (e) => {
-    updateIndicator(e.data + 1);
+
+  function playFlipSound(){
     if (flipSound){
       flipSound.currentTime = 0;
       flipSound.play().catch(()=>{});
     }
+  }
+
+  pageFlip.on('changeState', (e) => {
+    if (e.data === 'flipping'){
+      playFlipSound();
+    }
+  });
+
+  pageFlip.on('flip', (e) => {
+    updateIndicator(e.data + 1);
   });
 
   function updateIndicator(current){
