@@ -339,6 +339,10 @@
   }
 
   /* ---------- Image Cropping Classes ---------- */
+    #book-container{
+    overflow: hidden;
+  }
+  
   .page-wrapper {
     position: relative;
     background-color: #ffffff;
@@ -726,66 +730,92 @@
   document.addEventListener('touchend', () => {
     if(isMagActive) magnifier.classList.remove('active');
   });
+  
   // ---- Pinch to zoom (mobile) ----
   let pinchScale = 1;
   let lastDist = null;
   let panX = 0, panY = 0;
   let lastPan = null;
+  let isPinching = false;
+
+  const MAX_ZOOM = 4.5;
+  const MIN_ZOOM = 1;
 
   function getDistance(t1, t2){
     return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
   }
 
+  function applyTransform(){
+    container.style.transform = `scale(${pinchScale}) translate(${panX/pinchScale}px, ${panY/pinchScale}px)`;
+  }
+
   container.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2){
+      isPinching = true;
       lastDist = getDistance(e.touches[0], e.touches[1]);
-      lastPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      lastPan = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+      };
+      
+      e.stopPropagation();
     }
-  }, {passive:true});
+  }, {passive:true, capture:true});
 
   container.addEventListener('touchmove', (e) => {
     if (e.touches.length === 2 && lastDist){
+      e.stopPropagation();
+
       const newDist = getDistance(e.touches[0], e.touches[1]);
       const delta = newDist / lastDist;
-      pinchScale = Math.min(Math.max(pinchScale * delta, 1), 3.5);
+      pinchScale = Math.min(Math.max(pinchScale * delta, MIN_ZOOM), MAX_ZOOM);
       lastDist = newDist;
 
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       if (lastPan){
-        panX += e.touches[0].clientX - lastPan.x;
-        panY += e.touches[0].clientY - lastPan.y;
-        lastPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        panX += midX - lastPan.x;
+        panY += midY - lastPan.y;
       }
+      lastPan = { x: midX, y: midY };
 
-      container.style.transform = `scale(${pinchScale}) translate(${panX/pinchScale}px, ${panY/pinchScale}px)`;
-      container.style.transformOrigin = 'center center';
+      applyTransform();
     }
-  }, {passive:true});
+  }, {passive:true, capture:true});
 
   container.addEventListener('touchend', (e) => {
     if (e.touches.length < 2){
       lastDist = null;
       lastPan = null;
-      if (pinchScale <= 1.05){
-        pinchScale = 1;
-        panX = 0; panY = 0;
-        container.style.transform = '';
-      }
-    }
-  });
 
-  // Double-tap to reset zoom
+      if (isPinching){
+        setTimeout(()=>{ isPinching = false; }, 200);
+      }
+ 
+    }
+  }, {capture:true});
+
+ 
   let lastTap = 0;
-  container.addEventListener('touchend', () => {
+  container.addEventListener('touchend', (e) => {
+    if (e.touches.length > 0) return;
     const now = Date.now();
     if (now - lastTap < 300 && pinchScale > 1){
       pinchScale = 1;
       panX = 0; panY = 0;
-      container.style.transform = '';
       container.style.transition = 'transform 0.25s ease';
+      applyTransform();
       setTimeout(()=> container.style.transition = '', 260);
     }
     lastTap = now;
   });
+
+
+  document.addEventListener('touchstart', (e) => {
+    if (pinchScale > 1.02 && e.touches.length === 1){
+      e.stopPropagation();
+    }
+  }, {capture:true});
   
   setTimeout(dismissLoader, 6000);
   
