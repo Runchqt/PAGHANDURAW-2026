@@ -297,7 +297,35 @@
   }
   .hint.fade{ opacity:0; }
   #zoomHint.show{ opacity:1; }
-
+  .toast{
+    position:fixed;
+    bottom:80px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:10px 20px;
+    border-radius:8px;
+    border:1px solid var(--rust);
+    z-index:200;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.3s ease, transform 0.3s ease;
+  }
+    #book-container{
+    touch-action: pan-y pinch-zoom;
+  }
+  .page-wrapper{
+    touch-action: pan-y pinch-zoom;
+  }
+  .toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+  
   @media (max-width:640px){
     header{ padding:10px 12px; }
     .brand .title{ font-size:12.5px; }
@@ -310,7 +338,7 @@
     .hint{ font-size:10.5px; padding:7px 12px; bottom:10px;}
   }
 
-  /* ---------- Perfect Image Cropping Classes ---------- */
+  /* ---------- Image Cropping Classes ---------- */
   .page-wrapper {
     position: relative;
     background-color: #ffffff;
@@ -374,6 +402,8 @@
 
 <!-- Magnifier Tool -->
 <div id="magnifier"></div>
+  <div id="toast" class="toast"></div>
+  <audio id="flipSound" preload="auto" src="page-flip.mp3"></audio>
 <div id="zoomHint" class="hint" style="opacity:0; transition:opacity 0.3s ease;"></div>
   
 <div class="app">
@@ -383,7 +413,10 @@
       <span class="title">Accomplishment Report 2025 - 2026<small>Engineering Students Organization · MSU-GenSan</small></span>
     </div>
     <div class="toolbar">
-      
+      <button class="tbtn wide" id="shareBtn" title="Share this flipbook" aria-label="Share">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"></line><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"></line></svg>
+        <span class="label">Share</span>
+      </button>      
       <button class="tbtn wide" id="magBtn" title="Magnifying Glass" aria-label="Toggle Magnifier">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
         <span class="label">Zoom</span>
@@ -435,10 +468,10 @@
   const nextBtn = document.getElementById('nextBtn');
   const fullscreenBtn = document.getElementById('fullscreenBtn');
 
-  // Build the DOM nodes and PROTECT the real <img> tags with a wrapper
+
   imageUrls.forEach((url, index) => {
     if (index === 0 || index === TOTAL_IMAGE_FILES - 1) {
-      // FRONT COVER & BACK COVER
+
       const wrapper = document.createElement('div'); 
       wrapper.className = 'page-wrapper';
       const img = document.createElement('img'); 
@@ -447,7 +480,7 @@
       wrapper.appendChild(img);
       container.appendChild(wrapper);
     } else {
-      // MIDDLE SPREADS - Cut cleanly without squishing
+
       const wrapperLeft = document.createElement('div');
       wrapperLeft.className = 'page-wrapper';
       const imgLeft = document.createElement('img');
@@ -525,8 +558,13 @@
     coverImg.onerror = dismissLoader;
   }
 
+  const flipSound = document.getElementById('flipSound');
   pageFlip.on('flip', (e) => {
     updateIndicator(e.data + 1);
+    if (flipSound){
+      flipSound.currentTime = 0;
+      flipSound.play().catch(()=>{});
+    }
   });
 
   function updateIndicator(current){
@@ -567,7 +605,33 @@
   });
 
 
+  const shareBtn = document.getElementById('shareBtn');
+  const toast = document.getElementById('toast');
 
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 2200);
+  }
+
+  shareBtn.addEventListener('click', async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: document.title, url });
+      } catch (err) {
+
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast('Link copied!');
+      } catch (err) {
+        showToast('Could not copy link');
+      }
+    }
+  });
+  
   const magBtn = document.getElementById('magBtn');
   const magnifier = document.getElementById('magnifier');
   const zoomHint = document.getElementById('zoomHint');
@@ -644,7 +708,67 @@
   document.addEventListener('touchend', () => {
     if(isMagActive) magnifier.classList.remove('active');
   });
+  // ---- Pinch to zoom (mobile) ----
+  let pinchScale = 1;
+  let lastDist = null;
+  let panX = 0, panY = 0;
+  let lastPan = null;
 
+  function getDistance(t1, t2){
+    return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+  }
+
+  container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2){
+      lastDist = getDistance(e.touches[0], e.touches[1]);
+      lastPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  }, {passive:true});
+
+  container.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && lastDist){
+      const newDist = getDistance(e.touches[0], e.touches[1]);
+      const delta = newDist / lastDist;
+      pinchScale = Math.min(Math.max(pinchScale * delta, 1), 3.5);
+      lastDist = newDist;
+
+      if (lastPan){
+        panX += e.touches[0].clientX - lastPan.x;
+        panY += e.touches[0].clientY - lastPan.y;
+        lastPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+
+      container.style.transform = `scale(${pinchScale}) translate(${panX/pinchScale}px, ${panY/pinchScale}px)`;
+      container.style.transformOrigin = 'center center';
+    }
+  }, {passive:true});
+
+  container.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2){
+      lastDist = null;
+      lastPan = null;
+      if (pinchScale <= 1.05){
+        pinchScale = 1;
+        panX = 0; panY = 0;
+        container.style.transform = '';
+      }
+    }
+  });
+
+  // Double-tap to reset zoom
+  let lastTap = 0;
+  container.addEventListener('touchend', () => {
+    const now = Date.now();
+    if (now - lastTap < 300 && pinchScale > 1){
+      pinchScale = 1;
+      panX = 0; panY = 0;
+      container.style.transform = '';
+      container.style.transition = 'transform 0.25s ease';
+      setTimeout(()=> container.style.transition = '', 260);
+    }
+    lastTap = now;
+  });
+  
   setTimeout(dismissLoader, 6000);
   
 })();
