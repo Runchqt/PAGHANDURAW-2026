@@ -298,7 +298,7 @@
   .hint.fade{ opacity:0; }
   #zoomHint{
   position:fixed;
-  top:70px;
+  top:90px;
   left:50%;
   transform:translateX(-50%);
   bottom:auto;
@@ -736,8 +736,21 @@
   }
 
   document.addEventListener('mousemove', handleMagnifierMove);
-  document.addEventListener('touchmove', handleMagnifierMove, {passive: true});
-  
+
+  container.addEventListener('touchmove', (e) => {
+    if (isMagActive){
+      e.stopPropagation();
+      if (e.cancelable) e.preventDefault();
+      handleMagnifierMove(e);
+    }
+  }, {capture:true, passive:false});
+
+  container.addEventListener('touchstart', (e) => {
+    if (isMagActive){
+      e.stopPropagation();
+    }
+  }, {capture:true});
+
   document.addEventListener('touchend', () => {
     if(isMagActive) magnifier.classList.remove('active');
   });
