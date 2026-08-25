@@ -680,13 +680,14 @@
 
     clearTimeout(hintTimeout);
     if (isMagActive) {
- 
       if (zoomHint) {
-        zoomHint.textContent = "Zoom ON: Hover or drag over any page";
+        zoomHint.textContent = "Hover or drag over any page";
         zoomHint.classList.add('show');
+        hintTimeout = setTimeout(()=>{
+          zoomHint.classList.remove('show');
+        }, 3000);
       }
     } else {
-      
       if (zoomHint) zoomHint.classList.remove('show');
       magnifier.classList.remove('active');
     }
@@ -821,11 +822,17 @@
   });
 
 
-  document.addEventListener('touchstart', (e) => {
-    if (pinchScale > 1.02 && e.touches.length === 1){
+  // Block ALL single-finger flip gestures while zoomed in
+  function blockFlipWhileZoomed(e){
+    if (pinchScale > 1.02){
       e.stopPropagation();
+      if (e.cancelable) e.preventDefault();
     }
-  }, {capture:true});
+  }
+
+  document.addEventListener('touchstart', blockFlipWhileZoomed, {capture:true, passive:false});
+  document.addEventListener('touchmove', blockFlipWhileZoomed, {capture:true, passive:false});
+  document.addEventListener('touchend', blockFlipWhileZoomed, {capture:true, passive:false});
   
   setTimeout(dismissLoader, 6000);
   
