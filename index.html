@@ -296,7 +296,16 @@
     white-space:nowrap;
   }
   .hint.fade{ opacity:0; }
-  #zoomHint{ opacity:0; transition:opacity 0.3s ease; }
+  #zoomHint{
+  position:fixed;
+  top:70px;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:auto;
+  z-index:50;
+  opacity:0;
+  transition:opacity 0.3s ease;
+  }
   #zoomHint.show{ opacity:1; }
   .toast{
     position:fixed;
